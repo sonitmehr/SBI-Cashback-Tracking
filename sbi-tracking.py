@@ -4,41 +4,43 @@ from datetime import datetime
 from openpyxl import Workbook
 from openpyxl.worksheet.table import Table, TableStyleInfo
 import csv
-import copy
 from helper import resolve_mode_from_csv
-from raw_data.january_2026 import input_json
+from raw_data.january_2026 import raw_input_json as input_json
+
+
+MONTH_LABEL = "January"
+YEAR = "2026"
 
 # ---- Timestamped filename ----
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-FILE_NAME = f"statements/transactions_{timestamp}.xlsx"
+FILE_NAME = f"statements/{MONTH_LABEL}_{YEAR}_{timestamp}.xlsx"
 SHEET_NAME = "Transactions"
 
+# ---- Headers ----
 headers = [
     "Date",
     "Merchant Name",
     "Amount",
     "Type",
     "Mode",
-    "Cashback Expected"
+    "Cashback Expected",
+    "Net Payment",
+    "Done By"
 ]
 
-# ---- Raw Data ----
+# ---- Load Raw Data ----
 raw_data_json = input_json
+entries = json.loads(raw_data_json)
+
+# ---- Load Merchant CSV ----
 merchants_map = {}
 
 print("\n📄 Reading merchants.csv\n")
-
 with open("merchants.csv", newline="", encoding="utf-8") as csvfile:
     reader = csv.DictReader(csvfile)
     for row in reader:
-        merchant = row["Merchant Name"].strip()
-        mode = row["Mode"].strip().upper()
-        merchants_map[merchant] = mode
-
-print("\n✅ Merchant mode mapping loaded\n")
-
-
-entries = json.loads(raw_data_json)
+        merchants_map[row["Merchant Name"].strip()] = row["Mode"].strip().upper()
+print("✅ Merchant mode mapping loaded\n")
 
 # ---- Helpers ----
 month_map = {
@@ -49,19 +51,28 @@ month_map = {
 }
 
 pattern = re.compile(
-    r"(\d{2}) (\w{3}) \d{2} (.+) ([\d,]+\.\d{2}) ([DC]) (ON|OFF|NO)$"
+    r"(\d{2}) (\w{3}) \d{2} (.+) ([\d,]+\.\d{2}) ([DC]) (ON|OFF|NO)(?: (\w+))?$"
 )
 
+
 rows = []
+
+# ---- Parse Entries ----
 
 for entry in entries:
     m = pattern.search(entry)
     if not m:
-        raise ValueError(f"Invalid entry: {entry}")
+        raise ValueError(f"Invalid entry format: {entry}")
 
-    day, month, merchant, amt_raw, txn_type, mode = m.groups()
+    day, month, merchant, amt_raw, txn_type, mode, done_by = m.groups()
 
-    # 🔽 Resolve ON / OFF / NO using CSV
+    # ❌ HARD FAIL if Done By is missing
+    if not done_by:
+        raise ValueError(
+            f"❌ Missing 'Done By' field in transaction:\n{entry}"
+        )
+
+    # Resolve ON / OFF / NO using CSV
     mode = resolve_mode_from_csv(
         entry=entry,
         merchant_name=merchant,
@@ -73,14 +84,22 @@ for entry in entries:
     amount = float(amt_raw.replace(",", ""))
     txn_type = "Debit" if txn_type == "D" else "Credit"
 
-    rows.append([date, merchant.strip(), amount, txn_type, mode])
+    rows.append([
+        date,
+        merchant.strip(),
+        amount,
+        txn_type,
+        mode,
+        done_by
+    ])
 
-# ---- Workbook ----
+# ---- Create Workbook ----
 wb = Workbook()
 ws = wb.active
 ws.title = SHEET_NAME
 ws.append(headers)
 
+# ---- Write Data ----
 for i, r in enumerate(rows, start=2):
     ws.cell(i, 1, r[0])
     ws.cell(i, 2, r[1])
@@ -88,42 +107,96 @@ for i, r in enumerate(rows, start=2):
     ws.cell(i, 4, r[3])
     ws.cell(i, 5, r[4])
 
+    # Cashback rule
     ws.cell(
         i, 6,
-        f'=FLOOR(C{i}*IF(E{i}="ON",0.05,IF(E{i}="OFF",0.01,0)),1)'
+        f'=IF(C{i}<100,0,'
+        f'FLOOR(C{i}*IF(E{i}="ON",0.05,IF(E{i}="OFF",0.01,0)),1))'
     )
 
-# ---- Table ----
+    # Net Payment
+    ws.cell(i, 7, f"=C{i}-F{i}")
+
+    # Done By
+    ws.cell(i, 8, r[5])
+
+# ---- Create Table ----
 end_row = ws.max_row
-table = Table(displayName="TransactionTable", ref=f"A1:F{end_row}")
+table = Table(displayName="TransactionTable", ref=f"A1:H{end_row}")
 style = TableStyleInfo(name="TableStyleMedium9", showRowStripes=True)
 table.tableStyleInfo = style
 ws.add_table(table)
 
 # ---- Summary ----
-# ---- Summary ----
 summary_row = end_row + 2
 
-# Total Transaction Amount
 ws.cell(summary_row, 2, "Total Transaction Amount")
 ws.cell(summary_row, 3, f"=SUM(C2:C{end_row})")
 
-# Total Cashback Expected
 ws.cell(summary_row + 1, 2, "Total Cashback Expected")
 ws.cell(summary_row + 1, 3, f"=SUM(F2:F{end_row})")
 
-# Cashback Received (HARDCODED)
-cashback_received = 1009  # 👈 change this value as needed
+cashback_received = 1009
 ws.cell(summary_row + 2, 2, "Cashback Received")
 ws.cell(summary_row + 2, 3, cashback_received)
 
-# Cashback Difference (Expected - Received)
 ws.cell(summary_row + 3, 2, "Cashback Difference")
+ws.cell(summary_row + 3, 3, f"=C{summary_row + 1}-C{summary_row + 2}")
+
+# ---- Payment Pending Per User (Right Side) ----
+users = sorted(set(r[5] for r in rows if r[5]))
+
+start_col = 10  # Column J
+ws.cell(2, start_col, "Payment Pending From")
+
+for idx, user in enumerate(users, start=1):
+    row = 2 + idx
+    ws.cell(row, start_col, user)
+    ws.cell(
+        row,
+        start_col + 1,
+        f'=SUMIF(H2:H{end_row},"{user}",G2:G{end_row})'
+    )
+
+# ---- Totals & Reconciliation (Right Side) ----
+
+# Column placement (continuing on the right)
+recon_start_row = 2 + len(users) + 2
+recon_col = start_col  # same left column (J)
+
+# Sum of all individual pending payments
+ws.cell(recon_start_row, recon_col, "Total Pending Payments")
 ws.cell(
-    summary_row + 3,
-    3,
-    f"=C{summary_row + 1}-C{summary_row + 2}"
+    recon_start_row,
+    recon_col + 1,
+    f"=SUM(K3:K{2 + len(users)})"
 )
+
+# Cashback Received (mirror value for reconciliation)
+ws.cell(recon_start_row + 1, recon_col, "Cashback Received")
+ws.cell(
+    recon_start_row + 1,
+    recon_col + 1,
+    f"=C{summary_row + 2}"
+)
+
+# Final Reconciliation Check
+ws.cell(recon_start_row + 2, recon_col, "Reconciliation Status")
+ws.cell(
+    recon_start_row + 2,
+    recon_col + 1,
+    (
+        f'=IF('
+        f'C{summary_row}=('
+        f'K{recon_start_row}+K{recon_start_row + 1}'
+        f'),'
+        f'"Everything adds up",'
+        f'"Something is not adding up"'
+        f')'
+    )
+)
+
+
 # ---- Save ----
 wb.save(FILE_NAME)
-print(f"✅ Excel generated: {FILE_NAME}")
+print(f"✅ Excel generated successfully: {FILE_NAME}")
