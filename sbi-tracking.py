@@ -5,10 +5,10 @@ from openpyxl import Workbook
 from openpyxl.worksheet.table import Table, TableStyleInfo
 import csv
 from helper import resolve_mode_from_csv
-from raw_data.january_2026 import raw_input_json as input_json
+from raw_data.unbilled import raw_input_json as input_json, month_label,cashback
 
 
-MONTH_LABEL = "January"
+MONTH_LABEL = month_label
 YEAR = "2026"
 
 # ---- Timestamped filename ----
@@ -136,7 +136,7 @@ ws.cell(summary_row, 3, f"=SUM(C2:C{end_row})")
 ws.cell(summary_row + 1, 2, "Total Cashback Expected")
 ws.cell(summary_row + 1, 3, f"=SUM(F2:F{end_row})")
 
-cashback_received = 1009
+cashback_received = cashback
 ws.cell(summary_row + 2, 2, "Cashback Received")
 ws.cell(summary_row + 2, 3, cashback_received)
 

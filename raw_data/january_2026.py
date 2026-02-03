@@ -28,3 +28,5 @@ raw_input_json = """
   "22 Jan 26 IGST ON Card charge 179.82 D NO Sonit"
 ]
 """
+month_label="January"
+cashback=1009
