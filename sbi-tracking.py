@@ -5,7 +5,7 @@ from openpyxl import Workbook
 from openpyxl.worksheet.table import Table, TableStyleInfo
 import csv
 from helper import resolve_mode_from_csv
-from raw_data.unbilled import raw_input_json as input_json, month_label,cashback
+from raw_data.february_2026 import raw_input_json as input_json, month_label,cashback
 
 
 MONTH_LABEL = month_label
@@ -82,7 +82,14 @@ for entry in entries:
 
     date = f"2026-{month_map[month]}-{day}"
     amount = float(amt_raw.replace(",", ""))
-    txn_type = "Debit" if txn_type == "D" else "Credit"
+
+    # ✅ If Credit → make amount negative
+    if txn_type == "C":
+        amount = -abs(amount)
+        txn_type = "Credit"
+    else:
+        amount = abs(amount)
+        txn_type = "Debit"
 
     rows.append([
         date,
@@ -107,11 +114,17 @@ for i, r in enumerate(rows, start=2):
     ws.cell(i, 4, r[3])
     ws.cell(i, 5, r[4])
 
-    # Cashback rule
+    # Cashback rule (absolute-based, sign-aware)
     ws.cell(
         i, 6,
-        f'=IF(C{i}<100,0,'
-        f'FLOOR(C{i}*IF(E{i}="ON",0.05,IF(E{i}="OFF",0.01,0)),1))'
+        (
+            f'=IF(ABS(C{i})<100,0,'
+            f'FLOOR('
+            f'ABS(C{i})*IF(E{i}="ON",0.05,IF(E{i}="OFF",0.01,0)),'
+            f'1'
+            f')*SIGN(C{i})'
+            f')'
+        )
     )
 
     # Net Payment
