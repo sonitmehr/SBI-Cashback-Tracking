@@ -1,54 +1,295 @@
 raw_input_json = """
-[
-  "22 Jan 26 CARD CASHBACK CREDIT 1009.00 C NO Sonit",
-"24 Jan 26 AMAZONIN GURGAON IN 106.00 D ON Sonit",
-"24 Jan 26 MEESHO BANGALORE IN 160.00 C ON Mumma",
-
-"25 Jan 26 CAS*REDBUS INDIA PRIVA BANGALORE NOR IN 3570.00 D ON Friend",
-"25 Jan 26 TRAVELOGY ONLINE PRIVA KAMRUP IN 6192.00 D ON Friend",
-
-"26 Jan 26 AMAZON PAY INDIA PRIVA WWW.AMAZON.IN IN 449.00 D ON Sonit",
-"26 Jan 26 RAZ*GULLAK TECHNOLOGIE Bengaluru KA IN 194.40 D ON Sonit",
-"26 Jan 26 RAZ*GULLAK TECHNOLOGIE Bengaluru KA IN 193.50 D ON Sonit",
-"26 Jan 26 RAZ*GULLAK TECHNOLOGIE Bengaluru KA IN 193.50 C ON Sonit",
-
-"28 Jan 26 RAZ*GULLAK TECHNOLOGIE Bengaluru KA IN 254.70 D ON Sonit",
-"28 Jan 26 AMAZON PAY INDIA PRIVA WWW.AMAZON.IN IN 399.00 C ON Sonit",
-
-"29 Jan 26 SWIGGY LIMITED BANGALORE IN 341.00 D ON Mumma",
-"29 Jan 26 AMAZON PAY INDIA PRIVA WWW.AMAZON.IN IN 479.32 D ON Sonit",
-"29 Jan 26 RAZ*GULLAK TECHNOLOGIE Bengaluru KA IN 238.50 D ON Mumma",
-
-"31 Jan 26 MEESHO TECHNOLOGIES PR Bangalore IN 1052.00 D ON Sonit",
-"31 Jan 26 ZOMATO LIMITED Gurugram IN 166.90 D ON Sonit",
-
-"01 Feb 26 AMAZON PAY INDIA PRIVA WWW.AMAZON.IN IN 311.00 D ON Shreya",
-
-"03 Feb 26 AMAZON PAY INDIA PRIVA WWW.AMAZON.IN IN 10000.00 D ON Sonit",
-"03 Feb 26 AMAZON PAY INDIA PRIVA WWW.AMAZON.IN IN 10000.00 D ON Sonit",
-"03 Feb 26 RAZ*GULLAK TECHNOLOGIE Bengaluru KA IN 6000.00 D ON Sonit",
-"03 Feb 26 AMAZON PAY INDIA PRIVA Bangalore IN 10000.00 D ON Sonit",
-"03 Feb 26 AMAZON PAY INDIA PRIVA Bangalore IN 10000.00 D ON Sonit",
-
-"05 Feb 26 RAZ*GULLAK TECHNOLOGIE Bengaluru KA IN 210.00 D ON Sonit",
-"05 Feb 26 RAZ*GULLAK TECHNOLOGIE Bengaluru KA IN 210.00 D ON Sonit",
-"05 Feb 26 RAZ*GULLAK TECHNOLOGIE Bengaluru KA IN 210.00 C ON Sonit",
-
-"06 Feb 26 AMAZON PAY INDIA PRIVA Bangalore IN 350.00 D ON Sonit",
-
-"07 Feb 26 ZOMATO NEW DELHI IN 328.50 D ON Sonit",
-"07 Feb 26 MEESHO TECHNOLOGIES PR Bangalore IN 72.00 C ON Sonit",
-"07 Feb 26 MEESHO TECHNOLOGIES PR Bangalore IN 84.00 C ON Sonit",
-"07 Feb 26 MEESHO TECHNOLOGIES PR Bangalore IN 84.00 C ON Sonit",
-"07 Feb 26 MEESHO TECHNOLOGIES PR Bangalore IN 125.00 C ON Sonit",
-"07 Feb 26 MEESHO TECHNOLOGIES PR Bangalore IN 148.00 C ON Sonit",
-
-"08 Feb 26 DISTRICT MOVIE TICKET GURUGRAM IN 389.96 D ON Sonit",
-
-"09 Feb 26 RAZ*GULLAK TECHNOLOGIE Bengaluru KA IN 1000.00 D ON Sonit",
-
-"10 Feb 26 RAZ*GULLAK TECHNOLOGIE Bengaluru KA IN 210.00 D ON Sonit"
-]
+{
+    "cashback": 3043,
+    "transactions": [
+        {
+            "date": "24 Jan 26",
+            "merchant": "AMAZONIN GURGAON IN",
+            "amount": 106.0,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "24 Jan 26",
+            "merchant": "MEESHO BANGALORE IN",
+            "amount": 160.0,
+            "type": "C",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "25 Jan 26",
+            "merchant": "PAYMENT RECEIVED 000DP016025232708XrvERg",
+            "amount": 24953.0,
+            "type": "C",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "25 Jan 26",
+            "merchant": "CAS*REDBUS INDIA PRIVA BANGALORE NOR IN (Pay in EMIs)",
+            "amount": 3570.0,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "25 Jan 26",
+            "merchant": "TRAVELOGY ONLINE PRIVA KAMRUP IN (Pay in EMIs)",
+            "amount": 6192.0,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "26 Jan 26",
+            "merchant": "AMAZON PAY INDIA PRIVA WWW.AMAZON.IN IN",
+            "amount": 449.0,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "26 Jan 26",
+            "merchant": "RAZ*GULLAK TECHNOLOGIE Bengaluru KA IN",
+            "amount": 194.4,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "26 Jan 26",
+            "merchant": "RAZ*GULLAK TECHNOLOGIE Bengaluru KA IN",
+            "amount": 193.5,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "26 Jan 26",
+            "merchant": "RAZ*GULLAK TECHNOLOGIE Bengaluru KA IN",
+            "amount": 193.5,
+            "type": "C",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "28 Jan 26",
+            "merchant": "RAZ*GULLAK TECHNOLOGIE Bengaluru KA IN",
+            "amount": 254.7,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "28 Jan 26",
+            "merchant": "AMAZON PAY INDIA PRIVA WWW.AMAZON.IN IN",
+            "amount": 399.0,
+            "type": "C",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "29 Jan 26",
+            "merchant": "SWIGGY LIMITED BANGALORE IN",
+            "amount": 341.0,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "29 Jan 26",
+            "merchant": "AMAZON PAY INDIA PRIVA WWW.AMAZON.IN IN",
+            "amount": 479.32,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "29 Jan 26",
+            "merchant": "RAZ*GULLAK TECHNOLOGIE Bengaluru KA IN",
+            "amount": 238.5,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "31 Jan 26",
+            "merchant": "MEESHO TECHNOLOGIES PR Bangalore IN",
+            "amount": 1052.0,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "31 Jan 26",
+            "merchant": "ZOMATO LIMITED Gurugram IN",
+            "amount": 166.9,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "01 Feb 26",
+            "merchant": "AMAZON PAY INDIA PRIVA WWW.AMAZON.IN IN",
+            "amount": 311.0,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "03 Feb 26",
+            "merchant": "AMAZON PAY INDIA PRIVA WWW.AMAZON.IN IN (Pay in EMIs)",
+            "amount": 10000.0,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "03 Feb 26",
+            "merchant": "AMAZON PAY INDIA PRIVA WWW.AMAZON.IN IN (Pay in EMIs)",
+            "amount": 10000.0,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "03 Feb 26",
+            "merchant": "RAZ*GULLAK TECHNOLOGIE Bengaluru KA IN (Pay in EMIs)",
+            "amount": 6000.0,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "03 Feb 26",
+            "merchant": "AMAZON PAY INDIA PRIVA Bangalore IN (Pay in EMIs)",
+            "amount": 10000.0,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "03 Feb 26",
+            "merchant": "AMAZON PAY INDIA PRIVA Bangalore IN (Pay in EMIs)",
+            "amount": 10000.0,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "05 Feb 26",
+            "merchant": "RAZ*GULLAK TECHNOLOGIE Bengaluru KA IN",
+            "amount": 210.0,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "05 Feb 26",
+            "merchant": "RAZ*GULLAK TECHNOLOGIE Bengaluru KA IN",
+            "amount": 210.0,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "05 Feb 26",
+            "merchant": "RAZ*GULLAK TECHNOLOGIE Bengaluru KA IN",
+            "amount": 210.0,
+            "type": "C",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "06 Feb 26",
+            "merchant": "AMAZON PAY INDIA PRIVA Bangalore IN",
+            "amount": 350.0,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "07 Feb 26",
+            "merchant": "ZOMATO NEW DELHI IN",
+            "amount": 328.5,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "07 Feb 26",
+            "merchant": "MEESHO TECHNOLOGIES PR Bangalore IN",
+            "amount": 72.0,
+            "type": "C",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "07 Feb 26",
+            "merchant": "MEESHO TECHNOLOGIES PR Bangalore IN",
+            "amount": 84.0,
+            "type": "C",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "07 Feb 26",
+            "merchant": "MEESHO TECHNOLOGIES PR Bangalore IN",
+            "amount": 84.0,
+            "type": "C",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "07 Feb 26",
+            "merchant": "MEESHO TECHNOLOGIES PR Bangalore IN",
+            "amount": 148.0,
+            "type": "C",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "08 Feb 26",
+            "merchant": "DISTRICT MOVIE TICKET GURUGRAM IN",
+            "amount": 389.96,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "09 Feb 26",
+            "merchant": "RAZ*GULLAK TECHNOLOGIE Bengaluru KA IN",
+            "amount": 1000.0,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "10 Feb 26",
+            "merchant": "RAZ*GULLAK TECHNOLOGIE Bengaluru KA IN",
+            "amount": 210.0,
+            "type": "D",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "22 Feb 26",
+            "merchant": "22 Jan 26 CARD CASHBACK CREDIT",
+            "amount": 1009.0,
+            "type": "C",
+            "mode": null,
+            "done_by": null
+        },
+        {
+            "date": "22 Feb 26",
+            "merchant": "07 Feb 26 MEESHO TECHNOLOGIES PR Bangalore IN",
+            "amount": 125.0,
+            "type": "C",
+            "mode": null,
+            "done_by": null
+        }
+    ]
+}
 """
-month_label="February"
-cashback=3043
