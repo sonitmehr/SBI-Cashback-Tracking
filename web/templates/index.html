@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SBI Card Statement Parser</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .upload-section {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 12px;
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9ff;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8ebff;
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .upload-subtext {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            margin-top: 20px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .password-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 12px;
+        }
+
+        .password-section label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .password-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .results-section {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: none;
+        }
+
+        .results-section.show {
+            display: block;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .results-header h2 {
+            color: #333;
+            font-size: 1.8rem;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .summary-card label {
+            font-size: 0.85rem;
+            opacity: 0.9;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .summary-card .value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .transactions-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .transactions-table th {
+            background: #f8f9ff;
+            color: #667eea;
+            font-weight: 600;
+            padding: 15px;
+            text-align: left;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .transactions-table td {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .transactions-table tr:hover {
+            background: #f8f9ff;
+        }
+
+        .type-debit {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+
+        .type-credit {
+            color: #27ae60;
+            font-weight: 600;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .file-info {
+            margin-top: 15px;
+            padding: 10px;
+            background: #e8f5e9;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .dropdown-options {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 12px;
+        }
+
+        .dropdown-options label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .option-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .option-input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .option-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-small {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .btn-small:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+        }
+
+        .options-list {
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .option-tag {
+            background: #667eea;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .option-tag button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0;
+            line-height: 1;
+        }
+
+        select.done-by-select {
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            background: white;
+        }
+
+        select.done-by-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📄 SBI Card Statement Parser</h1>
+            <p>Upload your SBI credit card statement PDF to extract transaction details</p>
+        </div>
+
+        <div class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Drag & Drop your PDF here</div>
+                <div class="upload-subtext">or click to browse (Max 16MB)</div>
+                <input type="file" id="fileInput" accept=".pdf">
+            </div>
+            <div class="file-info" id="fileInfo"></div>
+            <div class="password-section">
+                <label for="passwordInput">PDF Password (if protected):</label>
+                <input type="password" id="passwordInput" class="password-input" placeholder="Enter password if PDF is protected">
+            </div>
+            <button class="btn" id="parseBtn" disabled>Parse Statement</button>
+            <div class="error" id="error"></div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Parsing your statement... This may take a few seconds.</p>
+        </div>
+
+        <div class="results-section" id="results">
+            <div class="results-header">
+                <h2>📊 Statement Summary</h2>
+                <div>
+                    <button class="btn" onclick="downloadJSON()">Download JSON</button>
+                    <button class="btn" onclick="generateExcel()">Generate Excel</button>
+                </div>
+            </div>
+
+            <div class="dropdown-options">
+                <label>Manage "Done By" Options:</label>
+                <div class="option-input-group">
+                    <input type="text" id="newOptionInput" class="option-input" placeholder="Enter new option name">
+                    <button class="btn-small" onclick="addDropdownOption()">Add Option</button>
+                </div>
+                <div class="options-list" id="optionsList"></div>
+            </div>
+
+            <div class="summary-cards" id="summaryCards"></div>
+
+            <h3 style="margin-top: 30px; margin-bottom: 15px; color: #333;">Transactions</h3>
+            <table class="transactions-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Merchant</th>
+                        <th>Amount (₹)</th>
+                        <th>Type</th>
+                        <th>Mode</th>
+                        <th>Done By</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionsBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const parseBtn = document.getElementById('parseBtn');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const error = document.getElementById('error');
+        const fileInfo = document.getElementById('fileInfo');
+        
+        let selectedFile = null;
+        let parsedData = null;
+        let doneByOptions = ['User'];
+        let merchantsMap = {};
+        const modeOptions = ['Online', 'Offline', 'Not Eligible'];
+
+        // Fetch merchants map on page load
+        fetch('/get-merchants-map')
+            .then(response => response.json())
+            .then(data => {
+                merchantsMap = data.merchants_map;
+            })
+            .catch(err => console.error('Failed to load merchants map:', err));
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (file.type !== 'application/pdf') {
+                showError('Please upload a PDF file');
+                return;
+            }
+
+            if (file.size > 16 * 1024 * 1024) {
+                showError('File size exceeds 16MB limit');
+                return;
+            }
+
+            selectedFile = file;
+            fileInfo.innerHTML = `✅ Selected: ${file.name} (${formatFileSize(file.size)})`;
+            fileInfo.classList.add('show');
+            parseBtn.disabled = false;
+            error.classList.remove('show');
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        parseBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('password', document.getElementById('passwordInput').value);
+
+            loading.classList.add('show');
+            results.classList.remove('show');
+            error.classList.remove('show');
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    parsedData = result.data;
+                    displayResults(result.data);
+                } else {
+                    showError(result.error || 'Failed to parse PDF');
+                }
+            } catch (err) {
+                showError('Error uploading file: ' + err.message);
+            } finally {
+                loading.classList.remove('show');
+            }
+        });
+
+        function displayResults(data) {
+            // Summary cards
+            const summaryCards = document.getElementById('summaryCards');
+            summaryCards.innerHTML = '';
+
+            const summaryFields = [
+                { key: 'Statement Month', label: 'Statement Month' },
+                { key: 'Statement Date', label: 'Statement Date' },
+                { key: 'Customer name', label: 'Customer Name' },
+                { key: 'Total amount due', label: 'Total Amount Due' },
+                { key: 'Minimum amount due', label: 'Minimum Amount Due' },
+                { key: 'Payment Due Date', label: 'Payment Due Date' },
+                { key: 'Cashback amount', label: 'Cashback Amount' }
+            ];
+
+            summaryFields.forEach(field => {
+                if (data[field.key]) {
+                    const card = document.createElement('div');
+                    card.className = 'summary-card';
+                    card.innerHTML = `
+                        <label>${field.label}</label>
+                        <div class="value">${data[field.key]}</div>
+                    `;
+                    summaryCards.appendChild(card);
+                }
+            });
+
+            // Transactions table
+            const tbody = document.getElementById('transactionsBody');
+            tbody.innerHTML = '';
+
+            if (data['Transactions Details'] && data['Transactions Details'].length > 0) {
+                data['Transactions Details'].forEach((txn, index) => {
+                    const row = document.createElement('tr');
+                    const typeClass = txn.Type === 'D' ? 'type-debit' : 'type-credit';
+                    const typeText = txn.Type === 'D' ? 'Debit' : 'Credit';
+                    
+                    const dropdownOptions = doneByOptions.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+                    
+                    // Prefill mode based on merchant name
+                    let prefilledMode = '';
+                    const merchantName = txn['Transaction Name'].toLowerCase();
+                    for (const [merchant, mode] of Object.entries(merchantsMap)) {
+                        if (merchantName.includes(merchant.toLowerCase())) {
+                            if (mode === 'ON') prefilledMode = 'Online';
+                            else if (mode === 'OFF') prefilledMode = 'Offline';
+                            else if (mode === 'NO') prefilledMode = 'Not Eligible';
+                            break;
+                        }
+                    }
+                    
+                    const modeOptionsHtml = modeOptions.map(opt => 
+                        `<option value="${opt}" ${opt === prefilledMode ? 'selected' : ''}>${opt}</option>`
+                    ).join('');
+                    
+                    row.innerHTML = `
+                        <td>${txn['Transaction date']}</td>
+                        <td>${txn['Transaction Name']}</td>
+                        <td>₹${parseFloat(txn.Amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        <td class="${typeClass}">${typeText}</td>
+                        <td>
+                            <select class="mode-select" data-index="${index}">
+                                <option value="">-- Select Mode --</option>
+                                ${modeOptionsHtml}
+                            </select>
+                        </td>
+                        <td>
+                            <select class="done-by-select" data-index="${index}">
+                                ${dropdownOptions}
+                            </select>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            results.classList.add('show');
+            renderDropdownOptions();
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.classList.add('show');
+        }
+
+        function downloadJSON() {
+            if (!parsedData) return;
+
+            const dataStr = JSON.stringify(parsedData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'statement_data.json';
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function renderDropdownOptions() {
+            const optionsList = document.getElementById('optionsList');
+            optionsList.innerHTML = '';
+
+            doneByOptions.forEach((option, index) => {
+                const tag = document.createElement('div');
+                tag.className = 'option-tag';
+                tag.innerHTML = `
+                    ${option}
+                    <button onclick="removeDropdownOption(${index})">&times;</button>
+                `;
+                optionsList.appendChild(tag);
+            });
+        }
+
+        function addDropdownOption() {
+            const input = document.getElementById('newOptionInput');
+            const newOption = input.value.trim();
+
+            if (newOption && !doneByOptions.includes(newOption)) {
+                doneByOptions.push(newOption);
+                renderDropdownOptions();
+                updateAllDropdowns();
+                input.value = '';
+            }
+        }
+
+        function removeDropdownOption(index) {
+            if (doneByOptions.length > 1) {
+                doneByOptions.splice(index, 1);
+                renderDropdownOptions();
+                updateAllDropdowns();
+            }
+        }
+
+        function updateAllDropdowns() {
+            const dropdowns = document.querySelectorAll('.done-by-select');
+            const dropdownOptions = doneByOptions.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+
+            dropdowns.forEach(select => {
+                const currentValue = select.value;
+                select.innerHTML = dropdownOptions;
+                select.value = currentValue;
+            });
+        }
+
+        async function generateExcel() {
+            if (!parsedData) return;
+
+            // Collect mode and done_by values from all dropdowns
+            const modeDropdowns = document.querySelectorAll('.mode-select');
+            const doneByDropdowns = document.querySelectorAll('.done-by-select');
+            
+            // Validate that all modes are filled
+            for (let i = 0; i < modeDropdowns.length; i++) {
+                if (!modeDropdowns[i].value) {
+                    showError('Please fill in the Mode for all transactions before generating Excel');
+                    return;
+                }
+            }
+            
+            const transactionsWithFields = parsedData['Transactions Details'].map((txn, index) => ({
+                ...txn,
+                mode: modeDropdowns[index] ? modeDropdowns[index].value : '',
+                done_by: doneByDropdowns[index] ? doneByDropdowns[index].value : 'User'
+            }));
+
+            const excelData = {
+                transactions: transactionsWithFields,
+                cashback: parsedData['Cashback amount'] || 0,
+                customer_name: parsedData['Customer name'] || '',
+                total_amount_due: parsedData['Total amount due'] || 0
+            };
+
+            loading.classList.add('show');
+
+            try {
+                const response = await fetch('/generate-excel', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(excelData)
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'statement.xlsx';
+                    link.click();
+                    URL.revokeObjectURL(url);
+                } else {
+                    const errorData = await response.json();
+                    showError(errorData.error || 'Failed to generate Excel');
+                }
+            } catch (err) {
+                showError('Error generating Excel: ' + err.message);
+            } finally {
+                loading.classList.remove('show');
+            }
+        }
+    </script>
+</body>
+</html>
