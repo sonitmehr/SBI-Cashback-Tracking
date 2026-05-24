@@ -103,6 +103,14 @@
             transform: translateY(-2px);
         }
 
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        }
+
+        .btn-info:hover {
+            box-shadow: 0 4px 12px rgba(23, 162, 184, 0.4);
+        }
+
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -401,6 +409,7 @@
                 <h2>📊 Statement Summary</h2>
                 <div>
                     <button class="btn" onclick="downloadJSON()">Download JSON</button>
+                    <button class="btn btn-info" onclick="uploadToDatabase()">Upload Changes to Database</button>
                     <button class="btn" onclick="generateExcel()">Generate Excel</button>
                 </div>
             </div>
@@ -706,6 +715,9 @@
                 done_by: doneByDropdowns[index] ? doneByDropdowns[index].value : 'User'
             }));
 
+            // Check for new/changed merchants and save to DB
+            await saveMerchantChangesToDB(transactionsWithFields);
+
             const excelData = {
                 transactions: transactionsWithFields,
                 cashback: parsedData['Cashback amount'] || 0,
@@ -738,6 +750,120 @@
                 }
             } catch (err) {
                 showError('Error generating Excel: ' + err.message);
+            } finally {
+                loading.classList.remove('show');
+            }
+        }
+
+        async function saveMerchantChangesToDB(transactions) {
+            const changes = [];
+            
+            transactions.forEach(txn => {
+                const merchantName = txn['Transaction Name'];
+                const selectedMode = txn.mode;
+                
+                // Convert display mode to internal mode
+                const modeMap = { 'Online': 'ON', 'Offline': 'OFF', 'Not Eligible': 'NO' };
+                const internalMode = modeMap[selectedMode];
+                
+                // Check if merchant exists in current map
+                let actionType = 'new';
+                for (const [merchant, mode] of Object.entries(merchantsMap)) {
+                    if (merchant.toLowerCase() === merchantName.toLowerCase()) {
+                        if (mode !== internalMode) {
+                            actionType = 'update';
+                        } else {
+                            return; // No change needed
+                        }
+                        break;
+                    }
+                }
+                
+                changes.push({
+                    merchant_name: merchantName,
+                    mode: internalMode,
+                    action_type: actionType
+                });
+            });
+            
+            if (changes.length > 0) {
+                try {
+                    const response = await fetch('/save-merchant-changes', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ changes })
+                    });
+                    
+                    const result = await response.json();
+                    if (result.success) {
+                        console.log(result.message);
+                    }
+                } catch (error) {
+                    console.error('Error saving merchant changes:', error);
+                }
+            }
+        }
+
+        async function uploadToDatabase() {
+            if (!parsedData) {
+                showError('No data to upload. Please parse a PDF first.');
+                return;
+            }
+
+            // Collect mode values from all dropdowns
+            const modeDropdowns = document.querySelectorAll('.mode-select');
+            
+            // Validate that all modes are filled
+            for (let i = 0; i < modeDropdowns.length; i++) {
+                if (!modeDropdowns[i].value) {
+                    showError('Please fill in the Mode for all transactions before uploading to database');
+                    return;
+                }
+            }
+            
+            const transactionsWithFields = parsedData['Transactions Details'].map((txn, index) => ({
+                ...txn,
+                mode: modeDropdowns[index] ? modeDropdowns[index].value : ''
+            }));
+
+            loading.classList.add('show');
+
+            try {
+                await saveMerchantChangesToDB(transactionsWithFields);
+                
+                // Show success message
+                const successDiv = document.createElement('div');
+                successDiv.className = 'success-message';
+                successDiv.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #d4edda;
+                    color: #155724;
+                    padding: 15px 20px;
+                    border-radius: 6px;
+                    border: 1px solid #c3e6cb;
+                    z-index: 1000;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                `;
+                successDiv.innerHTML = `
+                    <strong>✅ Success!</strong><br>
+                    Merchant changes have been submitted for admin approval.
+                    <br><small>Admin can review changes at <a href="/admin" target="_blank">/admin</a></small>
+                `;
+                document.body.appendChild(successDiv);
+                
+                // Remove success message after 5 seconds
+                setTimeout(() => {
+                    if (successDiv.parentNode) {
+                        successDiv.parentNode.removeChild(successDiv);
+                    }
+                }, 5000);
+                
+            } catch (error) {
+                showError('Error uploading to database: ' + error.message);
             } finally {
                 loading.classList.remove('show');
             }

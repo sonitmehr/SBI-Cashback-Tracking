@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, send_file
+from flask import Flask, request, jsonify, render_template, send_file, session, redirect, url_for
 import json
 import os
 import csv
@@ -9,12 +9,26 @@ from openpyxl.worksheet.table import Table, TableStyleInfo
 from werkzeug.utils import secure_filename
 from io import BytesIO
 from helpers.utils import read_pdf_as_string, resolve_mode_from_csv, parse_statement, load_merchants_csv, get_mode_for_merchant, convert_display_mode_to_internal
+try:
+    from config import (
+        get_merchants_from_db, save_merchant_for_approval, get_pending_approvals,
+        approve_merchant, reject_merchant, initialize_merchants_from_csv, DEFAULT_ADMIN_PASSWORD
+    )
+    print("Using cloud MongoDB configuration")
+except Exception as e:
+    print(f"Cloud MongoDB config failed: {e}")
+    print("Falling back to local MongoDB configuration")
+    from config_local import (
+        get_merchants_from_db, save_merchant_for_approval, get_pending_approvals,
+        approve_merchant, reject_merchant, initialize_merchants_from_csv, DEFAULT_ADMIN_PASSWORD
+    )
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+app.secret_key = 'your-secret-key-change-this'  # Change this in production
 
 # Configuration
 UPLOAD_FOLDER = 'uploads'
@@ -25,9 +39,12 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 # Create upload directory if it doesn't exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Load merchants CSV
+# Initialize merchants from CSV to MongoDB (one-time setup)
 merchants_csv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'merchants.csv')
-merchants_map = load_merchants_csv(merchants_csv_path)
+initialize_merchants_from_csv(merchants_csv_path)
+
+# Load merchants from MongoDB
+merchants_map = get_merchants_from_db()
 
 
 def allowed_file(filename):
@@ -299,6 +316,112 @@ def generate_excel():
         
     except Exception as e:
         return jsonify({'error': f'Error generating Excel: {str(e)}'}), 500
+
+
+@app.route('/save-merchant-changes', methods=['POST'])
+def save_merchant_changes():
+    """
+    Save merchant changes for admin approval.
+    """
+    try:
+        data = request.get_json()
+        changes = data.get('changes', [])
+        user_ip = request.remote_addr
+        
+        saved_count = 0
+        for change in changes:
+            merchant_name = change.get('merchant_name')
+            mode = change.get('mode')
+            action_type = change.get('action_type', 'new')
+            
+            if merchant_name and mode:
+                if save_merchant_for_approval(merchant_name, mode, action_type, user_ip):
+                    saved_count += 1
+        
+        return jsonify({
+            'success': True,
+            'message': f'{saved_count} merchant changes saved for admin approval'
+        })
+    
+    except Exception as e:
+        return jsonify({'error': f'Error saving merchant changes: {str(e)}'}), 500
+
+
+@app.route('/admin')
+def admin_login():
+    """
+    Admin login page.
+    """
+    if 'admin_logged_in' in session:
+        return redirect(url_for('admin_dashboard'))
+    return render_template('admin_login.html')
+
+
+@app.route('/admin/login', methods=['POST'])
+def admin_authenticate():
+    """
+    Authenticate admin user.
+    """
+    password = request.form.get('password')
+    if password == DEFAULT_ADMIN_PASSWORD:
+        session['admin_logged_in'] = True
+        return redirect(url_for('admin_dashboard'))
+    else:
+        return render_template('admin_login.html', error='Invalid password')
+
+
+@app.route('/admin/dashboard')
+def admin_dashboard():
+    """
+    Admin dashboard for approving merchant changes.
+    """
+    if 'admin_logged_in' not in session:
+        return redirect(url_for('admin_login'))
+    
+    pending_approvals = get_pending_approvals()
+    return render_template('admin_dashboard.html', approvals=pending_approvals)
+
+
+@app.route('/admin/approve/<approval_id>')
+def admin_approve(approval_id):
+    """
+    Approve a merchant change.
+    """
+    if 'admin_logged_in' not in session:
+        return redirect(url_for('admin_login'))
+    
+    from bson import ObjectId
+    if approve_merchant(ObjectId(approval_id)):
+        # Refresh merchants map
+        global merchants_map
+        merchants_map = get_merchants_from_db()
+        return jsonify({'success': True, 'message': 'Merchant approved successfully'})
+    else:
+        return jsonify({'error': 'Failed to approve merchant'}), 500
+
+
+@app.route('/admin/reject/<approval_id>')
+def admin_reject(approval_id):
+    """
+    Reject a merchant change.
+    """
+    if 'admin_logged_in' not in session:
+        return redirect(url_for('admin_login'))
+    
+    from bson import ObjectId
+    if reject_merchant(ObjectId(approval_id)):
+        return jsonify({'success': True, 'message': 'Merchant rejected successfully'})
+    else:
+        return jsonify({'error': 'Failed to reject merchant'}), 500
+
+
+@app.route('/admin/logout')
+def admin_logout():
+    """
+    Logout admin user.
+    """
+    session.pop('admin_logged_in', None)
+    return redirect(url_for('admin_login'))
 
 
 if __name__ == '__main__':

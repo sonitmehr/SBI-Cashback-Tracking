@@ -106,6 +106,11 @@ def parse_statement(text):
         amount = match.group(3).replace(",", "")
         ttype = match.group(4)
 
+        # Clean up merchant name - remove EMI indicators and other suffixes
+        name = re.sub(r'\s*\(?\s*Pay\s+in\s+EMI[s]?\s*\)?', '', name, flags=re.IGNORECASE)
+        name = re.sub(r'\s*\(?\s*EMI\s*\)?', '', name, flags=re.IGNORECASE)
+        name = name.strip()
+
         # Filter out PAYMENT RECEIVED entries
         if "PAYMENT RECEIVED" not in name.upper():
             transactions.append({
