@@ -374,6 +374,76 @@
             outline: none;
             border-color: #667eea;
         }
+
+        .json-upload-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 12px;
+            border: 2px dashed #667eea;
+        }
+
+        .json-upload-section label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .json-upload-section .option-input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        #jsonFileInput {
+            display: none;
+        }
+
+        .btn.btn-loading {
+            position: relative;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .btn.btn-loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin-top: -8px;
+            margin-left: -8px;
+            border: 2px solid #fff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .separator {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 20px 0;
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        .separator::before,
+        .separator::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .separator::before {
+            margin-right: 10px;
+        }
+
+        .separator::after {
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
@@ -396,6 +466,18 @@
                 <input type="password" id="passwordInput" class="password-input" placeholder="Enter password if PDF is protected">
             </div>
             <button class="btn" id="parseBtn" disabled>Parse Statement</button>
+
+            <div class="separator">OR</div>
+
+            <div class="json-upload-section">
+                <label>📋 Load from previously saved JSON:</label>
+                <div class="option-input-group">
+                    <button class="btn-small" onclick="document.getElementById('jsonFileInput').click()">Choose JSON File</button>
+                    <span id="jsonFileInfo" style="color: #666; font-size: 0.9rem;">No file selected</span>
+                    <input type="file" id="jsonFileInput" accept=".json">
+                </div>
+            </div>
+
             <div class="error" id="error"></div>
         </div>
 
@@ -410,7 +492,7 @@
                 <div>
                     <button class="btn" onclick="downloadJSON()">Download JSON</button>
                     <button class="btn btn-info" onclick="uploadToDatabase()">Upload Changes to Database</button>
-                    <button class="btn" onclick="generateExcel()">Generate Excel</button>
+                    <button class="btn" id="generateExcelBtn" onclick="generateExcel()">Generate Excel</button>
                 </div>
             </div>
 
@@ -550,7 +632,7 @@
             }
         });
 
-        function displayResults(data) {
+        function displayResults(data, savedSelections) {
             // Summary cards
             const summaryCards = document.getElementById('summaryCards');
             summaryCards.innerHTML = '';
@@ -587,17 +669,22 @@
                     const typeClass = txn.Type === 'D' ? 'type-debit' : 'type-credit';
                     const typeText = txn.Type === 'D' ? 'Debit' : 'Credit';
                     
-                    const dropdownOptions = doneByOptions.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+                    const savedDoneBy = savedSelections ? savedSelections[index]?.done_by : null;
+                    const dropdownOptions = doneByOptions.map(opt => 
+                        `<option value="${opt}" ${opt === savedDoneBy ? 'selected' : ''}>${opt}</option>`
+                    ).join('');
                     
-                    // Prefill mode based on merchant name
-                    let prefilledMode = '';
-                    const merchantName = txn['Transaction Name'].toLowerCase();
-                    for (const [merchant, mode] of Object.entries(merchantsMap)) {
-                        if (merchantName.includes(merchant.toLowerCase())) {
-                            if (mode === 'ON') prefilledMode = 'Online';
-                            else if (mode === 'OFF') prefilledMode = 'Offline';
-                            else if (mode === 'NO') prefilledMode = 'Not Eligible';
-                            break;
+                    // Prefill mode: use saved selection first, then merchant map, then empty
+                    let prefilledMode = savedSelections ? (savedSelections[index]?.mode || '') : '';
+                    if (!prefilledMode) {
+                        const merchantName = txn['Transaction Name'].toLowerCase();
+                        for (const [merchant, mode] of Object.entries(merchantsMap)) {
+                            if (merchantName.includes(merchant.toLowerCase())) {
+                                if (mode === 'ON') prefilledMode = 'Online';
+                                else if (mode === 'OFF') prefilledMode = 'Offline';
+                                else if (mode === 'NO') prefilledMode = 'Not Eligible';
+                                break;
+                            }
                         }
                     }
                     
@@ -638,7 +725,21 @@
         function downloadJSON() {
             if (!parsedData) return;
 
-            const dataStr = JSON.stringify(parsedData, null, 2);
+            const modeDropdowns = document.querySelectorAll('.mode-select');
+            const doneByDropdowns = document.querySelectorAll('.done-by-select');
+
+            const selections = parsedData['Transactions Details'].map((txn, index) => ({
+                mode: modeDropdowns[index] ? modeDropdowns[index].value : '',
+                done_by: doneByDropdowns[index] ? doneByDropdowns[index].value : 'User'
+            }));
+
+            const fullState = {
+                ...parsedData,
+                _savedSelections: selections,
+                _doneByOptions: doneByOptions
+            };
+
+            const dataStr = JSON.stringify(fullState, null, 2);
             const dataBlob = new Blob([dataStr], { type: 'application/json' });
             const url = URL.createObjectURL(dataBlob);
             const link = document.createElement('a');
@@ -694,8 +795,12 @@
             });
         }
 
+        let isGeneratingExcel = false;
+
         async function generateExcel() {
-            if (!parsedData) return;
+            if (!parsedData || isGeneratingExcel) return;
+
+            const excelBtn = document.getElementById('generateExcelBtn');
 
             // Collect mode and done_by values from all dropdowns
             const modeDropdowns = document.querySelectorAll('.mode-select');
@@ -708,6 +813,11 @@
                     return;
                 }
             }
+
+            isGeneratingExcel = true;
+            excelBtn.classList.add('btn-loading');
+            excelBtn.textContent = 'Generating...';
+            excelBtn.disabled = true;
             
             const transactionsWithFields = parsedData['Transactions Details'].map((txn, index) => ({
                 ...txn,
@@ -724,8 +834,6 @@
                 customer_name: parsedData['Customer name'] || '',
                 total_amount_due: parsedData['Total amount due'] || 0
             };
-
-            loading.classList.add('show');
 
             try {
                 const response = await fetch('/generate-excel', {
@@ -751,7 +859,10 @@
             } catch (err) {
                 showError('Error generating Excel: ' + err.message);
             } finally {
-                loading.classList.remove('show');
+                isGeneratingExcel = false;
+                excelBtn.classList.remove('btn-loading');
+                excelBtn.textContent = 'Generate Excel';
+                excelBtn.disabled = false;
             }
         }
 
@@ -805,6 +916,47 @@
                 }
             }
         }
+
+        // JSON file upload handler
+        document.getElementById('jsonFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (!file.name.endsWith('.json')) {
+                showError('Please select a JSON file');
+                return;
+            }
+
+            document.getElementById('jsonFileInfo').textContent = file.name;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const jsonData = JSON.parse(event.target.result);
+
+                    // Extract saved selections and doneByOptions if present
+                    const savedSelections = jsonData._savedSelections || null;
+                    const savedDoneByOptions = jsonData._doneByOptions || null;
+
+                    // Remove internal keys before setting parsedData
+                    const cleanData = { ...jsonData };
+                    delete cleanData._savedSelections;
+                    delete cleanData._doneByOptions;
+
+                    // Restore doneByOptions if saved
+                    if (savedDoneByOptions && savedDoneByOptions.length > 0) {
+                        doneByOptions = savedDoneByOptions;
+                    }
+
+                    parsedData = cleanData;
+                    error.classList.remove('show');
+                    displayResults(cleanData, savedSelections);
+                } catch (err) {
+                    showError('Invalid JSON file: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+        });
 
         async function uploadToDatabase() {
             if (!parsedData) {
