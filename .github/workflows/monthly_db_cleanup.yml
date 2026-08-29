@@ -1,0 +1,35 @@
+name: Monthly Database Cleanup
+
+on:
+  # Run at 00:00 UTC on the 1st of every month
+  schedule:
+    - cron: '0 0 1 * *'
+  # Allow manual trigger from GitHub Actions UI
+  workflow_dispatch:
+
+jobs:
+  cleanup-database:
+    name: Purge Rejected Approvals from MongoDB
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 📦 Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pymongo[srv] python-dotenv
+
+      - name: 🧹 Run Database Cleanup
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          DATABASE_NAME: ${{ secrets.DATABASE_NAME || 'sbi_cashback_tracking' }}
+        run: |
+          python cleanup_db.py
