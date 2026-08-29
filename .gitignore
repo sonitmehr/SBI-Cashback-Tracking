@@ -11,5 +11,6 @@ ENV/
 .env.local
 .DS_Store
 *.xlsx
+!SBI Cashback Card & PhonePe Purple_Black.xlsx
 uploads/
 web/uploads/
