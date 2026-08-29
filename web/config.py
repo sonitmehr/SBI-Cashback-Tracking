@@ -14,13 +14,13 @@ except ImportError:
     pass
 
 # MongoDB Configuration
-MONGODB_URI = os.environ.get("MONGODB_URI")
-DATABASE_NAME = os.environ.get("DATABASE_NAME", "sbi_cashback_tracking")
-MERCHANTS_COLLECTION = os.environ.get("MERCHANTS_COLLECTION", "merchants")
-ADMIN_COLLECTION = os.environ.get("ADMIN_COLLECTION", "admin_approvals")
+MONGODB_URI = (os.environ.get("MONGODB_URI") or "").strip()
+DATABASE_NAME = (os.environ.get("DATABASE_NAME") or "sbi_cashback_tracking").strip()
+MERCHANTS_COLLECTION = (os.environ.get("MERCHANTS_COLLECTION") or "merchants").strip()
+ADMIN_COLLECTION = (os.environ.get("ADMIN_COLLECTION") or "admin_approvals").strip()
 
 # Admin Configuration
-DEFAULT_ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Sonit")
+DEFAULT_ADMIN_PASSWORD = (os.environ.get("ADMIN_PASSWORD") or "Sonit").strip()
 
 # MongoDB Client with connection settings
 client = None

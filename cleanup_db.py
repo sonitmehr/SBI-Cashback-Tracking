@@ -29,9 +29,9 @@ except ImportError:
 
 from pymongo import MongoClient
 
-MONGODB_URI = os.environ.get("MONGODB_URI")
-DATABASE_NAME = os.environ.get("DATABASE_NAME", "sbi_cashback_tracking")
-ADMIN_COLLECTION = os.environ.get("ADMIN_COLLECTION", "admin_approvals")
+MONGODB_URI = os.environ.get("MONGODB_URI", "").strip()
+DATABASE_NAME = (os.environ.get("DATABASE_NAME") or "sbi_cashback_tracking").strip()
+ADMIN_COLLECTION = (os.environ.get("ADMIN_COLLECTION") or "admin_approvals").strip()
 
 
 def cleanup_rejected_approvals():
