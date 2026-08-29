@@ -32,12 +32,12 @@ except ImportError:
 from pymongo import MongoClient
 
 # Configuration
-EXCEL_FILE_NAME = os.environ.get("EXCEL_FILE_PATH", "SBI Cashback Card & PhonePe Purple_Black.xlsx")
-SHEET_NAME = os.environ.get("EXCEL_SHEET_NAME", "SBI Cashback")
-MONGODB_URI = os.environ.get("MONGODB_URI")
-DATABASE_NAME = os.environ.get("DATABASE_NAME", "sbi_cashback_tracking")
-MERCHANTS_COLLECTION = os.environ.get("MERCHANTS_COLLECTION", "merchants")
-ADMIN_COLLECTION = os.environ.get("ADMIN_COLLECTION", "admin_approvals")
+EXCEL_FILE_NAME = (os.environ.get("EXCEL_FILE_PATH") or "SBI Cashback Card & PhonePe Purple_Black.xlsx").strip()
+SHEET_NAME = (os.environ.get("EXCEL_SHEET_NAME") or "SBI Cashback").strip()
+MONGODB_URI = os.environ.get("MONGODB_URI", "").strip()
+DATABASE_NAME = (os.environ.get("DATABASE_NAME") or "sbi_cashback_tracking").strip()
+MERCHANTS_COLLECTION = (os.environ.get("MERCHANTS_COLLECTION") or "merchants").strip()
+ADMIN_COLLECTION = (os.environ.get("ADMIN_COLLECTION") or "admin_approvals").strip()
 
 
 def map_cashback_to_mode(cb_val):
