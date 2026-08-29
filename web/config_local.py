@@ -3,15 +3,15 @@ import csv
 from pymongo import MongoClient
 
 # Local MongoDB Configuration (fallback)
-LOCAL_MONGODB_URI = "mongodb://localhost:27017/"
-CLOUD_MONGODB_URI = "mongodb+srv://sonitmehrotra_db_user:aqT94F6Ws00G5m8g@my-life-cluster.uk6jc6c.mongodb.net/sbi_cashback_tracking?retryWrites=true&w=majority"
+LOCAL_MONGODB_URI = os.environ.get("LOCAL_MONGODB_URI", "mongodb://localhost:27017/")
+CLOUD_MONGODB_URI = os.environ.get("MONGODB_URI", "")
 
-DATABASE_NAME = "sbi_cashback_tracking"
-MERCHANTS_COLLECTION = "merchants"
-ADMIN_COLLECTION = "admin_approvals"
+DATABASE_NAME = os.environ.get("DATABASE_NAME", "sbi_cashback_tracking")
+MERCHANTS_COLLECTION = os.environ.get("MERCHANTS_COLLECTION", "merchants")
+ADMIN_COLLECTION = os.environ.get("ADMIN_COLLECTION", "admin_approvals")
 
 # Admin Configuration
-DEFAULT_ADMIN_PASSWORD = "Sonit"
+DEFAULT_ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Sonit")
 
 def get_mongodb_client():
     """Get MongoDB client with fallback to local instance"""

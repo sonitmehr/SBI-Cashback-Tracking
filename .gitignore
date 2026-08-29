@@ -1,1 +1,15 @@
-__pycache__
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+ENV/
+.env
+.env.local
+.DS_Store
+*.xlsx
+uploads/
+web/uploads/

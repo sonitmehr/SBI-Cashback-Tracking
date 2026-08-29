@@ -10,11 +10,20 @@ import sys
 from datetime import datetime
 from pymongo import MongoClient
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    parent_env = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+    if os.path.exists(parent_env):
+        load_dotenv(parent_env)
+except ImportError:
+    pass
+
 # MongoDB Configuration
-MONGODB_URI = "mongodb+srv://sonitmehrotra_db_user:aqT94F6Ws00G5m8g@my-life-cluster.uk6jc6c.mongodb.net/sbi_cashback_tracking?retryWrites=true&w=majority"
-DATABASE_NAME = "sbi_cashback_tracking"
-MERCHANTS_COLLECTION = "merchants"
-ADMIN_COLLECTION = "admin_approvals"
+MONGODB_URI = os.environ.get("MONGODB_URI")
+DATABASE_NAME = os.environ.get("DATABASE_NAME", "sbi_cashback_tracking")
+MERCHANTS_COLLECTION = os.environ.get("MERCHANTS_COLLECTION", "merchants")
+ADMIN_COLLECTION = os.environ.get("ADMIN_COLLECTION", "admin_approvals")
 
 def init_mongodb():
     """Initialize MongoDB collections and data"""

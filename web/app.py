@@ -27,8 +27,17 @@ except Exception as e:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    parent_env = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+    if os.path.exists(parent_env):
+        load_dotenv(parent_env)
+except ImportError:
+    pass
+
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-change-this'  # Change this in production
+app.secret_key = os.environ.get('SECRET_KEY', 'sbi-cashback-tracking-secret-key-change-in-env')
 
 # Configuration
 UPLOAD_FOLDER = 'uploads'
@@ -425,4 +434,6 @@ def admin_logout():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
+    app.run(host='0.0.0.0', port=port, debug=debug)
