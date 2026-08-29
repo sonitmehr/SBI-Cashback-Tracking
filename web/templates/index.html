@@ -105,10 +105,178 @@
 
         .btn-info {
             background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            transition: all 0.3s ease;
         }
 
         .btn-info:hover {
             box-shadow: 0 4px 12px rgba(23, 162, 184, 0.4);
+        }
+
+        .btn-highlight {
+            background: linear-gradient(135deg, #ff5722 0%, #ff9800 100%) !important;
+            box-shadow: 0 0 16px rgba(255, 87, 34, 0.6);
+            animation: pulse-glow 2s infinite ease-in-out;
+            font-weight: 600;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% {
+                box-shadow: 0 0 12px rgba(255, 87, 34, 0.5);
+                transform: translateY(-1px);
+            }
+            50% {
+                box-shadow: 0 0 22px rgba(255, 152, 0, 0.85);
+                transform: translateY(-3px) scale(1.02);
+            }
+        }
+
+        .change-badge {
+            background: white;
+            color: #d84315;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-left: 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Modal Styles */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 520px;
+            padding: 28px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.35);
+            position: relative;
+            animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes modalPop {
+            from { transform: scale(0.92); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 1.35rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: #94a3b8;
+            line-height: 1;
+            padding: 0 4px;
+        }
+
+        .modal-close:hover {
+            color: #334155;
+        }
+
+        .modal-notice {
+            background: #fff8e1;
+            border-left: 4px solid #ffb300;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            color: #6d4c41;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .modal-notice.no-changes {
+            background: #f0f9ff;
+            border-left-color: #0284c7;
+            color: #0369a1;
+        }
+
+        .modal-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .modal-option-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 16px 18px;
+            border-radius: 12px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        .modal-option-btn.primary {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .modal-option-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45);
+        }
+
+        .modal-option-btn.secondary {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            color: #334155;
+        }
+
+        .modal-option-btn.secondary:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            transform: translateY(-2px);
+        }
+
+        .modal-option-btn .btn-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .modal-option-btn .btn-subtitle {
+            font-size: 0.82rem;
+            opacity: 0.9;
+            line-height: 1.3;
         }
 
         .btn:disabled {
@@ -491,7 +659,7 @@
                 <h2>📊 Statement Summary</h2>
                 <div>
                     <button class="btn" onclick="downloadJSON()">Download JSON</button>
-                    <button class="btn btn-info" onclick="uploadToDatabase()">Upload Changes to Database</button>
+                    <button class="btn btn-info" id="uploadDbBtn" onclick="uploadToDatabase()">Upload Changes to Database</button>
                     <button class="btn" id="generateExcelBtn" onclick="generateExcel()">Generate Excel</button>
                 </div>
             </div>
@@ -521,6 +689,28 @@
                 </thead>
                 <tbody id="transactionsBody"></tbody>
             </table>
+    </div>
+
+    <!-- Modal for Generate Excel Options -->
+    <div class="modal-backdrop" id="excelModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📊 Generate Excel Statement</h3>
+                <button class="modal-close" onclick="closeExcelModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="modalChangeNotice" class="modal-notice"></div>
+                <div class="modal-options">
+                    <button class="modal-option-btn primary" onclick="confirmGenerateExcel(true)">
+                        <span class="btn-title">⚡ Generate Excel and upload DB</span>
+                        <span class="btn-subtitle">Download the statement Excel AND submit all merchant mode changes for admin approval.</span>
+                    </button>
+                    <button class="modal-option-btn secondary" onclick="confirmGenerateExcel(false)">
+                        <span class="btn-title">📄 Generate Excel</span>
+                        <span class="btn-subtitle">Download the statement Excel only without saving changes to the merchant database.</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -709,18 +899,110 @@
                             </select>
                         </td>
                     `;
+                    const rowModeSelect = row.querySelector('.mode-select');
+                    rowModeSelect.addEventListener('change', () => {
+                        updateChangesHighlight();
+                    });
                     tbody.appendChild(row);
                 });
             }
 
             results.classList.add('show');
             renderDropdownOptions();
+            updateChangesHighlight();
         }
 
         function showError(message) {
             error.textContent = message;
             error.classList.add('show');
         }
+
+        function getPendingMerchantChanges() {
+            if (!parsedData || !parsedData['Transactions Details']) return [];
+
+            const modeDropdowns = document.querySelectorAll('.mode-select');
+            const modeMap = { 'Online': 'ON', 'Offline': 'OFF', 'Not Eligible': 'NO' };
+            const changes = [];
+            const seenMerchants = new Set();
+
+            parsedData['Transactions Details'].forEach((txn, index) => {
+                const merchantName = (txn['Transaction Name'] || '').trim();
+                if (!merchantName || seenMerchants.has(merchantName.toLowerCase())) return;
+
+                const selectedDisplayMode = modeDropdowns[index] ? modeDropdowns[index].value : '';
+                if (!selectedDisplayMode) return;
+
+                const internalMode = modeMap[selectedDisplayMode];
+                if (!internalMode) return;
+
+                // Find existing mode in merchantsMap
+                let existingMode = null;
+                for (const [m, mode] of Object.entries(merchantsMap)) {
+                    if (merchantName.toLowerCase().includes(m.toLowerCase()) || m.toLowerCase() === merchantName.toLowerCase()) {
+                        existingMode = mode;
+                        break;
+                    }
+                }
+
+                if (existingMode === null) {
+                    seenMerchants.add(merchantName.toLowerCase());
+                    changes.push({
+                        merchant_name: merchantName,
+                        mode: internalMode,
+                        action_type: 'new'
+                    });
+                } else if (existingMode !== internalMode) {
+                    seenMerchants.add(merchantName.toLowerCase());
+                    changes.push({
+                        merchant_name: merchantName,
+                        mode: internalMode,
+                        action_type: 'update'
+                    });
+                }
+            });
+
+            return changes;
+        }
+
+        function updateChangesHighlight() {
+            const uploadBtn = document.getElementById('uploadDbBtn');
+            if (!uploadBtn) return;
+
+            const changes = getPendingMerchantChanges();
+            if (changes.length > 0) {
+                uploadBtn.classList.add('btn-highlight');
+                uploadBtn.innerHTML = `✨ Upload Changes to Database <span class="change-badge">${changes.length}</span>`;
+            } else {
+                uploadBtn.classList.remove('btn-highlight');
+                uploadBtn.innerHTML = `Upload Changes to Database`;
+            }
+        }
+
+        function openExcelModal(changeCount) {
+            const modal = document.getElementById('excelModal');
+            const notice = document.getElementById('modalChangeNotice');
+            if (changeCount > 0) {
+                notice.className = 'modal-notice';
+                notice.innerHTML = `⚠️ <strong>${changeCount} merchant mode change(s)</strong> detected compared to the database. Choose how you want to export:`;
+            } else {
+                notice.className = 'modal-notice no-changes';
+                notice.innerHTML = `✅ All merchant modes match the current database. Choose an option below:`;
+            }
+            modal.style.display = 'flex';
+        }
+
+        function closeExcelModal() {
+            const modal = document.getElementById('excelModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        // Close modal if user clicks outside content box
+        window.addEventListener('click', (e) => {
+            const modal = document.getElementById('excelModal');
+            if (e.target === modal) {
+                closeExcelModal();
+            }
+        });
 
         function downloadJSON() {
             if (!parsedData) return;
@@ -797,16 +1079,11 @@
 
         let isGeneratingExcel = false;
 
-        async function generateExcel() {
+        function generateExcel() {
             if (!parsedData || isGeneratingExcel) return;
 
-            const excelBtn = document.getElementById('generateExcelBtn');
-
-            // Collect mode and done_by values from all dropdowns
-            const modeDropdowns = document.querySelectorAll('.mode-select');
-            const doneByDropdowns = document.querySelectorAll('.done-by-select');
-            
             // Validate that all modes are filled
+            const modeDropdowns = document.querySelectorAll('.mode-select');
             for (let i = 0; i < modeDropdowns.length; i++) {
                 if (!modeDropdowns[i].value) {
                     showError('Please fill in the Mode for all transactions before generating Excel');
@@ -814,19 +1091,41 @@
                 }
             }
 
+            const changes = getPendingMerchantChanges();
+            openExcelModal(changes.length);
+        }
+
+        async function confirmGenerateExcel(uploadToDb) {
+            closeExcelModal();
+            await executeGenerateExcel(uploadToDb);
+        }
+
+        async function executeGenerateExcel(uploadToDb = false) {
+            if (!parsedData || isGeneratingExcel) return;
+
+            const excelBtn = document.getElementById('generateExcelBtn');
+            const modeDropdowns = document.querySelectorAll('.mode-select');
+            const doneByDropdowns = document.querySelectorAll('.done-by-select');
+
             isGeneratingExcel = true;
             excelBtn.classList.add('btn-loading');
             excelBtn.textContent = 'Generating...';
             excelBtn.disabled = true;
-            
+
             const transactionsWithFields = parsedData['Transactions Details'].map((txn, index) => ({
                 ...txn,
                 mode: modeDropdowns[index] ? modeDropdowns[index].value : '',
                 done_by: doneByDropdowns[index] ? doneByDropdowns[index].value : 'User'
             }));
 
-            // Check for new/changed merchants and save to DB
-            await saveMerchantChangesToDB(transactionsWithFields);
+            if (uploadToDb) {
+                try {
+                    await saveMerchantChangesToDB();
+                    updateChangesHighlight();
+                } catch (e) {
+                    console.warn('Could not auto-save merchant changes during excel generation:', e);
+                }
+            }
 
             const excelData = {
                 transactions: transactionsWithFields,
@@ -866,54 +1165,35 @@
             }
         }
 
-        async function saveMerchantChangesToDB(transactions) {
-            const changes = [];
-            
-            transactions.forEach(txn => {
-                const merchantName = txn['Transaction Name'];
-                const selectedMode = txn.mode;
-                
-                // Convert display mode to internal mode
-                const modeMap = { 'Online': 'ON', 'Offline': 'OFF', 'Not Eligible': 'NO' };
-                const internalMode = modeMap[selectedMode];
-                
-                // Check if merchant exists in current map
-                let actionType = 'new';
-                for (const [merchant, mode] of Object.entries(merchantsMap)) {
-                    if (merchant.toLowerCase() === merchantName.toLowerCase()) {
-                        if (mode !== internalMode) {
-                            actionType = 'update';
-                        } else {
-                            return; // No change needed
-                        }
-                        break;
-                    }
-                }
-                
-                changes.push({
-                    merchant_name: merchantName,
-                    mode: internalMode,
-                    action_type: actionType
+        async function saveMerchantChangesToDB() {
+            const changes = getPendingMerchantChanges();
+            if (changes.length === 0) {
+                return { success: true, message: 'No merchant mode changes detected.' };
+            }
+
+            try {
+                const response = await fetch('/save-merchant-changes', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ changes })
                 });
-            });
-            
-            if (changes.length > 0) {
-                try {
-                    const response = await fetch('/save-merchant-changes', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ changes })
+
+                const result = await response.json();
+                if (result.success) {
+                    // Update in-memory merchantsMap so button un-highlights immediately
+                    changes.forEach(c => {
+                        merchantsMap[c.merchant_name] = c.mode;
                     });
-                    
-                    const result = await response.json();
-                    if (result.success) {
-                        console.log(result.message);
-                    }
-                } catch (error) {
-                    console.error('Error saving merchant changes:', error);
+                    updateChangesHighlight();
+                    return result;
+                } else {
+                    throw new Error(result.error || 'Failed to save merchant changes');
                 }
+            } catch (error) {
+                console.error('Error saving merchant changes:', error);
+                throw error;
             }
         }
 
@@ -966,7 +1246,7 @@
 
             // Collect mode values from all dropdowns
             const modeDropdowns = document.querySelectorAll('.mode-select');
-            
+
             // Validate that all modes are filled
             for (let i = 0; i < modeDropdowns.length; i++) {
                 if (!modeDropdowns[i].value) {
@@ -974,17 +1254,19 @@
                     return;
                 }
             }
-            
-            const transactionsWithFields = parsedData['Transactions Details'].map((txn, index) => ({
-                ...txn,
-                mode: modeDropdowns[index] ? modeDropdowns[index].value : ''
-            }));
+
+            const changes = getPendingMerchantChanges();
+            if (changes.length === 0) {
+                showError('No merchant changes or new merchants to upload.');
+                return;
+            }
 
             loading.classList.add('show');
 
             try {
-                await saveMerchantChangesToDB(transactionsWithFields);
-                
+                const result = await saveMerchantChangesToDB();
+                updateChangesHighlight();
+
                 // Show success message
                 const successDiv = document.createElement('div');
                 successDiv.className = 'success-message';
@@ -995,25 +1277,26 @@
                     background: #d4edda;
                     color: #155724;
                     padding: 15px 20px;
-                    border-radius: 6px;
+                    border-radius: 8px;
                     border: 1px solid #c3e6cb;
-                    z-index: 1000;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                    z-index: 10001;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+                    font-size: 0.95rem;
                 `;
                 successDiv.innerHTML = `
                     <strong>✅ Success!</strong><br>
-                    Merchant changes have been submitted for admin approval.
-                    <br><small>Admin can review changes at <a href="/admin" target="_blank">/admin</a></small>
+                    ${result?.message || 'Merchant changes submitted for admin approval.'}
+                    <br><small>Admin can review changes at <a href="/admin" target="_blank" style="color: #155724; font-weight: bold; text-decoration: underline;">/admin</a></small>
                 `;
                 document.body.appendChild(successDiv);
-                
+
                 // Remove success message after 5 seconds
                 setTimeout(() => {
                     if (successDiv.parentNode) {
                         successDiv.parentNode.removeChild(successDiv);
                     }
                 }, 5000);
-                
+
             } catch (error) {
                 showError('Error uploading to database: ' + error.message);
             } finally {
