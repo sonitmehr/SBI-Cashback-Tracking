@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from pymongo import MongoClient
 
 # MongoDB Configuration
@@ -83,7 +84,7 @@ def save_merchant_for_approval(merchant_name, mode, action_type="new", user_ip="
             "action_type": action_type,  # "new", "update"
             "status": "pending",
             "submitted_by": user_ip,
-            "submitted_at": {"$date": {"$numberLong": str(int(__import__('time').time() * 1000))}},
+            "submitted_at": datetime.utcnow(),
             "approved_by": None,
             "approved_at": None
         }
@@ -119,8 +120,8 @@ def approve_merchant(approval_id, admin_user="admin"):
             "name": approval["merchant_name"],
             "mode": approval["mode"],
             "status": "approved",
-            "created_at": {"$date": {"$numberLong": str(int(__import__('time').time() * 1000))}},
-            "updated_at": {"$date": {"$numberLong": str(int(__import__('time').time() * 1000))}},
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
             "history": []
         }
         
@@ -132,14 +133,14 @@ def approve_merchant(approval_id, admin_user="admin"):
                 "old_mode": existing_merchant.get("mode"),
                 "new_mode": approval["mode"],
                 "updated_by": admin_user,
-                "updated_at": {"$date": {"$numberLong": str(int(__import__('time').time() * 1000))}}
+                "updated_at": datetime.utcnow()
             }
             merchants_collection.update_one(
                 {"name": approval["merchant_name"]},
                 {
                     "$set": {
                         "mode": approval["mode"],
-                        "updated_at": {"$date": {"$numberLong": str(int(__import__('time').time() * 1000))}}
+                        "updated_at": datetime.utcnow()
                     },
                     "$push": {"history": history_entry}
                 }
@@ -155,7 +156,7 @@ def approve_merchant(approval_id, admin_user="admin"):
                 "$set": {
                     "status": "approved",
                     "approved_by": admin_user,
-                    "approved_at": {"$date": {"$numberLong": str(int(__import__('time').time() * 1000))}}
+                    "approved_at": datetime.utcnow()
                 }
             }
         )
@@ -176,7 +177,7 @@ def reject_merchant(approval_id, admin_user="admin"):
                 "$set": {
                     "status": "rejected",
                     "approved_by": admin_user,
-                    "approved_at": {"$date": {"$numberLong": str(int(__import__('time').time() * 1000))}}
+                    "approved_at": datetime.utcnow()
                 }
             }
         )
@@ -215,8 +216,8 @@ def initialize_merchants_from_csv(csv_path):
                     "name": row["Merchant Name"].strip(),
                     "mode": row["Mode"].strip().upper(),
                     "status": "approved",
-                    "created_at": {"$date": {"$numberLong": str(int(__import__('time').time() * 1000))}},
-                    "updated_at": {"$date": {"$numberLong": str(int(__import__('time').time() * 1000))}},
+                    "created_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow(),
                     "history": []
                 }
                 merchants_to_insert.append(merchant_doc)

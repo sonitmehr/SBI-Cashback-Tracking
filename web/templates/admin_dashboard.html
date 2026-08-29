@@ -261,7 +261,7 @@
                             </span>
                         </td>
                         <td>{{ approval.submitted_by }}</td>
-                        <td>{{ approval.submitted_at.strftime('%Y-%m-%d %H:%M') if approval.submitted_at else 'N/A' }}</td>
+                        <td>{% if approval.submitted_at is mapping %}{{ 'N/A' }}{% elif approval.submitted_at and approval.submitted_at.strftime is defined %}{{ approval.submitted_at.strftime('%Y-%m-%d %H:%M') }}{% elif approval.submitted_at %}{{ approval.submitted_at }}{% else %}N/A{% endif %}</td>
                         <td>
                             <div class="action-buttons">
                                 <button class="btn btn-approve" onclick="approveReject('{{ approval._id }}', 'approve')">
