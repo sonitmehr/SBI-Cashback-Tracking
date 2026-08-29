@@ -424,6 +424,52 @@ def admin_reject(approval_id):
         return jsonify({'error': 'Failed to reject merchant'}), 500
 
 
+@app.route('/admin/bulk-action', methods=['POST'])
+def admin_bulk_action():
+    """
+    Perform bulk approve or reject on multiple approvals.
+    """
+    if 'admin_logged_in' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    data = request.get_json() or {}
+    approval_ids = data.get('ids', [])
+    action = data.get('action')  # 'approve' or 'reject'
+    
+    if not approval_ids or action not in ['approve', 'reject']:
+        return jsonify({'error': 'Invalid request parameters'}), 400
+    
+    from bson import ObjectId
+    success_count = 0
+    fail_count = 0
+    
+    for aid in approval_ids:
+        try:
+            oid = ObjectId(aid)
+            if action == 'approve':
+                if approve_merchant(oid):
+                    success_count += 1
+                else:
+                    fail_count += 1
+            elif action == 'reject':
+                if reject_merchant(oid):
+                    success_count += 1
+                else:
+                    fail_count += 1
+        except Exception as e:
+            fail_count += 1
+            
+    if action == 'approve' and success_count > 0:
+        global merchants_map
+        merchants_map = get_merchants_from_db()
+        
+    action_verb = "approved" if action == "approve" else "rejected"
+    return jsonify({
+        'success': True,
+        'message': f'Successfully {action_verb} {success_count} item(s)' + (f' ({fail_count} failed)' if fail_count > 0 else '')
+    })
+
+
 @app.route('/admin/logout')
 def admin_logout():
     """
