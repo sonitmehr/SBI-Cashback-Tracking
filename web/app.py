@@ -73,6 +73,73 @@ def get_merchants_map():
     return jsonify({'merchants_map': merchants_map})
 
 
+@app.route('/api/merchants/all')
+def api_get_all_merchants():
+    """
+    Return all merchants (both approved in DB and pending in admin approvals)
+    for the searchable merchant directory and modification system.
+    """
+    try:
+        from config import merchants_collection, admin_collection
+        
+        merchants_dict = {}
+        
+        # 1. Approved merchants from database
+        if merchants_collection is not None:
+            for doc in merchants_collection.find():
+                name = doc.get("name", "").strip()
+                mode = doc.get("mode", "").strip().upper()
+                if name:
+                    merchants_dict[name.lower()] = {
+                        "name": name,
+                        "mode": mode,
+                        "status": "approved",
+                        "updated_at": doc.get("updated_at")
+                    }
+        
+        # Fallback to in-memory/csv map if merchants_collection has no data
+        if not merchants_dict and merchants_map:
+            for name, mode in merchants_map.items():
+                merchants_dict[name.lower()] = {
+                    "name": name,
+                    "mode": mode.upper(),
+                    "status": "approved"
+                }
+
+        # 2. Pending approvals
+        if admin_collection is not None:
+            for doc in admin_collection.find({"status": "pending"}):
+                name = doc.get("merchant_name", "").strip()
+                mode = doc.get("mode", "").strip().upper()
+                action_type = doc.get("action_type", "new")
+                if name:
+                    key = name.lower()
+                    if key in merchants_dict:
+                        # Existing approved merchant with a pending modification
+                        merchants_dict[key]["pending_mode"] = mode
+                        merchants_dict[key]["has_pending_update"] = True
+                    else:
+                        # Brand new merchant pending initial approval
+                        merchants_dict[key] = {
+                            "name": name,
+                            "mode": mode,
+                            "status": "pending",
+                            "action_type": action_type,
+                            "submitted_at": doc.get("submitted_at")
+                        }
+
+        merchants_list = list(merchants_dict.values())
+        merchants_list.sort(key=lambda x: x["name"].lower())
+
+        return jsonify({
+            "success": True,
+            "merchants": merchants_list,
+            "total": len(merchants_list)
+        })
+    except Exception as e:
+        return jsonify({"error": f"Error fetching merchants: {str(e)}"}), 500
+
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
