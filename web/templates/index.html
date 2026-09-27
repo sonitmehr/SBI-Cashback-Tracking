@@ -1744,17 +1744,6 @@
             }
         }
 
-        // Close modal if user clicks outside content box
-        window.addEventListener('click', (e) => {
-            const excelModal = document.getElementById('excelModal');
-            const errorModal = document.getElementById('errorModal');
-            const uploadConfirmModal = document.getElementById('uploadConfirmModal');
-
-            if (e.target === excelModal) closeExcelModal();
-            if (e.target === errorModal) closeErrorModal();
-            if (e.target === uploadConfirmModal) closeUploadConfirmModal();
-        });
-
         function downloadJSON() {
             if (!parsedData) return;
 
@@ -1828,6 +1817,194 @@
             });
         }
 
+        let isGeneratingExcel = false;
+
+        function generateExcel() {
+            if (!parsedData || isGeneratingExcel) return;
+
+            const validation = validateAllModes();
+            if (!validation.valid) {
+                showError(
+                    `Please select a <strong>Mode</strong> for all transactions before generating Excel.<br>The following <strong>${validation.missing.length}</strong> transaction(s) are missing a mode:`,
+                    'Missing Mode Selection',
+                    validation.missing
+                );
+                if (validation.missing[0]?.selectEl) {
+                    validation.missing[0].selectEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return;
+            }
+
+            const changes = getPendingMerchantChanges();
+            openExcelModal(changes.length);
+        }
+
+        async function confirmGenerateExcel(uploadToDb) {
+            closeExcelModal();
+
+            if (uploadToDb) {
+                const changes = getPendingMerchantChanges();
+                if (changes.length > 0) {
+                    // Open the database changes preview modal first
+                    openUploadConfirmModal(async () => {
+                        await executeGenerateExcel();
+                    });
+                    return;
+                }
+            }
+
+            await executeGenerateExcel();
+        }
+
+        async function executeGenerateExcel() {
+            if (!parsedData || isGeneratingExcel) return;
+
+            const excelBtn = document.getElementById('generateExcelBtn');
+            const modeDropdowns = document.querySelectorAll('.mode-select');
+            const doneByDropdowns = document.querySelectorAll('.done-by-select');
+
+            isGeneratingExcel = true;
+            excelBtn.classList.add('btn-loading');
+            excelBtn.textContent = 'Generating...';
+            excelBtn.disabled = true;
+
+            const transactionsWithFields = parsedData['Transactions Details'].map((txn, index) => ({
+                ...txn,
+                mode: modeDropdowns[index] ? modeDropdowns[index].value : '',
+                done_by: doneByDropdowns[index] ? doneByDropdowns[index].value : 'User'
+            }));
+
+            const excelData = {
+                transactions: transactionsWithFields,
+                cashback: parsedData['Cashback amount'] || 0,
+                customer_name: parsedData['Customer name'] || '',
+                total_amount_due: parsedData['Total amount due'] || 0
+            };
+
+            try {
+                const response = await fetch('/generate-excel', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(excelData)
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'statement.xlsx';
+                    link.click();
+                    URL.revokeObjectURL(url);
+                } else {
+                    const errorData = await response.json();
+                    showError(errorData.error || 'Failed to generate Excel', 'Excel Generation Error');
+                }
+            } catch (err) {
+                showError('Error generating Excel: ' + err.message, 'Excel Generation Error');
+            } finally {
+                isGeneratingExcel = false;
+                excelBtn.classList.remove('btn-loading');
+                excelBtn.textContent = 'Generate Excel';
+                excelBtn.disabled = false;
+            }
+        }
+
+        async function saveMerchantChangesToDB() {
+            const changes = getPendingMerchantChanges();
+            if (changes.length === 0) {
+                return { success: true, message: 'No merchant mode changes detected.' };
+            }
+
+            try {
+                const response = await fetch('/save-merchant-changes', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ changes })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    // Update in-memory merchantsMap so button un-highlights immediately
+                    changes.forEach(c => {
+                        merchantsMap[c.merchant_name] = c.mode;
+                    });
+                    updateChangesHighlight();
+                    return result;
+                } else {
+                    throw new Error(result.error || 'Failed to save merchant changes');
+                }
+            } catch (error) {
+                console.error('Error saving merchant changes:', error);
+                throw error;
+            }
+        }
+
+        // JSON file upload handler
+        document.getElementById('jsonFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (!file.name.endsWith('.json')) {
+                showError('Please select a valid .json file.', 'Invalid File Format');
+                return;
+            }
+
+            document.getElementById('jsonFileInfo').textContent = file.name;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const jsonData = JSON.parse(event.target.result);
+
+                    const savedSelections = jsonData._savedSelections || null;
+                    const savedDoneByOptions = jsonData._doneByOptions || null;
+
+                    const cleanData = { ...jsonData };
+                    delete cleanData._savedSelections;
+                    delete cleanData._doneByOptions;
+
+                    if (savedDoneByOptions && savedDoneByOptions.length > 0) {
+                        doneByOptions = savedDoneByOptions;
+                    }
+
+                    parsedData = cleanData;
+                    displayResults(cleanData, savedSelections);
+                } catch (err) {
+                    showError('Invalid JSON file: ' + err.message, 'JSON Parse Error');
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        function uploadToDatabase() {
+            if (!parsedData) {
+                showError('Please upload and parse a PDF statement first.', 'No Data Available');
+                return;
+            }
+
+            const validation = validateAllModes();
+            if (!validation.valid) {
+                showError(
+                    `Please select a <strong>Mode</strong> for all transactions before uploading to the database.<br>The following <strong>${validation.missing.length}</strong> transaction(s) require attention:`,
+                    'Missing Mode Selection',
+                    validation.missing
+                );
+                if (validation.missing[0]?.selectEl) {
+                    validation.missing[0].selectEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return;
+            }
+
+            // Open the database changes preview modal
+            openUploadConfirmModal();
+        }
+
+        // Close modal if user clicks outside content box
         window.addEventListener('click', (e) => {
             const excelModal = document.getElementById('excelModal');
             const errorModal = document.getElementById('errorModal');
